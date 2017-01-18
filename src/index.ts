@@ -5,6 +5,9 @@ import {MixinPlugin} from './mixin-plugin';
 
 export type IMongooseDocument<T> = T & mongoose.Document;
 export type IMongooseModel<TModel, TDoc> = TModel & mongoose.Model<IMongooseDocument<TDoc>>;
+export type IdLike = string | number | Buffer | mongoose.Schema.Types.ObjectId;
+export type DocLike = {_id: IdLike};
+export type IdOrDocLike = IdLike | DocLike;
 
 /**
  * Contains information needed to create a model from a decorated class
