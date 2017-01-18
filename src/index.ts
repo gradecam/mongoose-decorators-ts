@@ -331,12 +331,10 @@ function makeFieldDecorator(defaultOpts: any) {
             let t = opts;
             opts = defaultOpts;
             return SchemaFieldDecorator(t, pKey);
-        } else if (!opts) {
-            opts = defaultOpts || {};
         }
-        let settings: any = Object.assign({}, defaultOpts, opts);
+        opts = Object.assign({}, defaultOpts, opts);
         function SchemaFieldDecorator(target: any, propertyKey: string) : void {
-            setFieldOpts(target, propertyKey, settings);
+            setFieldOpts(target, propertyKey, opts);
         }
         return SchemaFieldDecorator;
     }
@@ -391,11 +389,13 @@ export function defaultVal(defaultValue: any, opts?: any) {
 }
 
 /**
- * Specialization of @Field for specifying a ref (should be used only with ObjectId)
+ * Specialization of @Field for specifying a ref the default
+ * type is ObjectId but if specified in opts must be one of:
+ *     Buffer, Number, ObjectId, or String
  */
 export function ref(ref: string, opts?: any) {
-    opts = opts || {};
-    Object.assign(opts, { type: mongoose.Schema.Types.ObjectId, ref: ref });
+    const defaults = {type: mongoose.Schema.Types.ObjectId};
+    opts = Object.assign({}, defaults, opts, {ref: ref});
     return makeFieldDecorator(opts);
 }
 
@@ -492,12 +492,10 @@ function makeArrayDecorator(defaultOpts: any) {
             let t = opts;
             opts = defaultOpts;
             return SchemaArrayFieldDecorator(t, pKey);
-        } else if (!opts) {
-            opts = defaultOpts || {};
         }
-        let settings: any = Object.assign({}, defaultOpts, opts);
+        opts = Object.assign({}, defaultOpts, opts);
         function SchemaArrayFieldDecorator(target: any, propertyKey: string) : void {
-            setArrayOpts(target, propertyKey, settings);
+            setArrayOpts(target, propertyKey, opts);
         }
         return SchemaArrayFieldDecorator;
     }

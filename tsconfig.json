@@ -4,12 +4,12 @@
         "declaration": true,
         "emitDecoratorMetadata": true,
         "experimentalDecorators": true,
-        "inlineSourceMap": true,
         "module": "commonjs",
         "noImplicitAny": true,
         "outDir": "dist",
         "preserveConstEnums": true,
         "removeComments": false,
+        "sourceMap": true,
         "strictNullChecks": true,
         "target": "ES2015"
     },
