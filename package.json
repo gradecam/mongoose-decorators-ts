@@ -1,12 +1,11 @@
 {
   "name": "mongoose-decorators-ts",
-  "version": "1.0.0",
+  "version": "1.0.0-alpha1",
   "description": "TypeScript decorators for Mongoose models.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "lint": "tslint --project tsconfig.json --type-check",
-    "postinstall": "tsc",
     "prepublish": "tsc",
     "test": "tsc && mocha dist/test/"
   },
