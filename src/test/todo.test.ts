@@ -14,7 +14,7 @@ describe('test Todo model', function userSuite() {
 
     it('should have a mocked mongoose', () =>
         expect((<any>mongoose).isMocked).to.be.true
-    )
+    );
 
     it('should start with an empty todo list', async () => {
         let count: number = await Todo.find().count().exec();
@@ -35,6 +35,6 @@ describe('test Todo model', function userSuite() {
             .then(
                 async () => Promise.reject('create should have failed.'),
                 async () => Promise.resolve('failed to create with excessive priority')
-            )
+            );
     });
 });
