@@ -1,0 +1,44 @@
+{
+  "name": "mongoose-decorators-ts",
+  "version": "1.0.0",
+  "description": "TypeScript decorators for Mongoose models.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "lint": "tslint --project tsconfig.json --type-check",
+    "postinstall": "tsc",
+    "prepublish": "tsc",
+    "test": "tsc && mocha dist/test/"
+  },
+  "keywords": [
+    "decorators",
+    "mongoose",
+    "typescript"
+  ],
+  "author": "GradeCam LLC",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/chai": "^3.4.34",
+    "@types/chai-as-promised": "0.0.29",
+    "@types/mocha": "^2.2.37",
+    "@types/mongoose": "^4.7.3",
+    "chai": "^3.5.0",
+    "chai-as-promised": "^6.0.0",
+    "mocha": "^3.2.0",
+    "mongoose": ">= 4.7.7",
+    "reflect-metadata": ">= 0.1.9",
+    "tslint": "^4.3.1",
+    "typescript": "^2.1.5"
+  },
+  "peerDependencies": {
+    "mongoose": ">= 4.7.7",
+    "reflect-metadata": ">= 0.1.9"
+  },
+  "repository": "gradecam/mongoose-decorators-ts",
+  "engines": {
+    "node": ">= 6"
+  },
+  "files": [
+    "dist"
+  ]
+}

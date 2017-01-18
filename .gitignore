@@ -1,0 +1,7 @@
+._*
+*.DS_Store
+*.swp
+.tscache
+dist/
+node_modules/
+npm-*
