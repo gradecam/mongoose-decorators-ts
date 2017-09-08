@@ -5,7 +5,7 @@ import {MixinPlugin} from './mixin-plugin';
 
 export type IMongooseDocument<T> = T & mongoose.Document;
 export type IMongooseModel<TModel, TDoc> = TModel & mongoose.Model<IMongooseDocument<TDoc>>;
-export type IdLike = string | number | Buffer | mongoose.Schema.Types.ObjectId;
+export type IdLike = string | number | Buffer | mongoose.Types.ObjectId;
 export type DocLike = {_id: IdLike};
 export type IdOrDocLike = IdLike | DocLike;
 
@@ -512,9 +512,9 @@ function makeArrayDecorator(defaultOpts: any) {
  * @return {MethodDecorator}       A decorator which will set up the hook
  */
 export function pre(event: string) : MethodDecorator {
-    function PreDecorator(
+    function PreDecorator<T>(
         target: Object, propertyKey: string | symbol,
-        descriptor: TypedPropertyDescriptor<Function>) : TypedPropertyDescriptor<Function> | void {
+        descriptor: TypedPropertyDescriptor<T>) : TypedPropertyDescriptor<T> | void {
         let data = getMetadata(target.constructor);
         data.preHooks.push({ name: event, fn: <any>descriptor.value });
     }
@@ -527,9 +527,9 @@ export function pre(event: string) : MethodDecorator {
  * @return {MethodDecorator}       A decorator which will set up the hook
  */
 export function post(event: string) : MethodDecorator {
-    function PostDecorator(
+    function PostDecorator<T>(
         target: Object, propertyKey: string | symbol,
-        descriptor: TypedPropertyDescriptor<Function>) : TypedPropertyDescriptor<Function> | void {
+        descriptor: TypedPropertyDescriptor<T>) : TypedPropertyDescriptor<T> | void {
         let data = getMetadata(target.constructor);
         data.postHooks.push({ name: event, fn: <any>descriptor.value });
     }
@@ -540,8 +540,8 @@ export function post(event: string) : MethodDecorator {
  * Apply to a static or method if you don't want it to end up on the runtime object
  * (I don't really know why you'd want this, but in case you do...)
  */
-export function ignore(
+export function ignore<T>(
     target: Object, propertyKey: string | symbol,
-    descriptor: TypedPropertyDescriptor<Function>) : TypedPropertyDescriptor<Function> | void {
+    descriptor: TypedPropertyDescriptor<T>) : TypedPropertyDescriptor<T> | void {
     Reflect.defineMetadata('schema:ignore', true, target, propertyKey);
 }
