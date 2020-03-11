@@ -11,7 +11,11 @@
         "removeComments": false,
         "sourceMap": true,
         "strictNullChecks": true,
-        "target": "ES2015"
+        "target": "ES2015",
+        "typeRoots": [
+            "node_modules/@alttypes",
+            "node_modules/@types"
+        ]
     },
     "include": [
         "**/*.ts"
