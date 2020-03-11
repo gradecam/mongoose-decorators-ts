@@ -3,8 +3,10 @@ import {
     arrayField, dateField, field,
     IMongooseDocument, ModelFromSchemaDef,
     ref, required,
-    schemaDef
+    schemaDef,
+    populateVirtual
 } from '../index';
+import { Category } from './category';
 
 export const MAX_PRIORITY = 10;
 
@@ -22,6 +24,9 @@ export class TodoSchema {
 
     @ref('Category', {default: 'inbox', type: String})
     category: string;
+
+    @populateVirtual({ref: 'Category', localField: 'category', foreignField: '_id', justOne: true})
+    categoryDoc?: Category;
 
     @required({default: 1, min: 1, max: MAX_PRIORITY})
     priority: number;

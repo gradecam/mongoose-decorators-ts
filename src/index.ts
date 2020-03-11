@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import * as mongoose from 'mongoose';
-import * as mongodb from 'mongodb';
+import {IndexOptions} from 'mongodb';
 import {MixinPlugin} from './mixin-plugin';
 
 export type IMongooseDocument<T> = T & mongoose.Document;
@@ -9,46 +9,66 @@ export type IdLike = string | number | Buffer | mongoose.Types.ObjectId;
 export type DocLike = {_id: IdLike};
 export type IdOrDocLike = IdLike | DocLike;
 
+export type VirtualRefFn = (doc: object) => string;
+export type VirtualRef = string | VirtualRefFn;
+
+/**
+ * Contains a mapping of field names to virtual populate definitions for that field
+ */
+interface VirtualDefinitions {
+    [field: string]: {
+        ref: VirtualRef, localField: VirtualRef, foreignField: VirtualRef, justOne?: boolean, count?: boolean, options?: mongoose.ModelPopulateOptions
+    };
+}
+
+function defaultSchemaCreate(data: IModelInfo, schema_opts: any) {
+    return new mongoose.Schema(data.schemaObj, schema_opts);
+}
+function defaultSchemaFinalize(data: IModelInfo, schema: mongoose.Schema) {
+    return schema;
+}
+
+
 /**
  * Contains information needed to create a model from a decorated class
  */
 export interface IModelInfo {
-    modelName: string | null;
+    modelName: string;
     debug: boolean;
-    schemaObj: null | any;
-    schema: mongoose.Schema | null;
+    schemaObj: any;
+    schema: mongoose.Schema;
     children: IMongooseClassMetadataHolder[];
-    preHooks: { name: string, fn: (next: (err?: mongoose.NativeError) => void) => void,
-      errorCb?: (err: Error) => void}[];
-    postHooks: { name: string, fn: (doc: any, next: (err?: mongoose.NativeError) => void) => void}[];
+    virtualFields: VirtualDefinitions;
+    schemaFinalize: typeof defaultSchemaFinalize;
+    preHooks: { name: string, fn: mongoose.HookSyncCallback<any> }[];
+    postHooks: { name: string, fn: ( error: any, doc: any, next: (err?: any) => void) => void}[];
 }
 
 export interface IMongooseClassMetadataHolder {
     _$_mongooseMeta: IModelInfo;
 }
-// interface IMongooseFields {
-//     [name: string]: any;
-// }
 
 /**
- * Rreates the actual Mongoose Model which is used to perform queries and create
+ * Creates the actual Mongoose Model which is used to perform queries and create
  * instances of a mongoose Model.
  * @type {[type]}
  */
-export function ModelFromSchemaDef<TModel, TDocument>(cls:TModel, conn?:mongoose.Connection ) {
+export function ModelFromSchemaDef<TModel extends {}, TDocument extends {}>(cls:TModel, conn?:mongoose.Connection ) {
     conn = conn || mongoose.connection;
     let data = getMetadata(cls, true);
-    if (conn.modelNames().indexOf(<any>data.modelName) !== -1) {
-        return <IMongooseModel<TModel, TDocument>>conn.model(<any>data.modelName);
+    if (conn.models[data.modelName]) {
+        return <mongoose.Model<mongoose.Document<TDocument>, TModel>>conn.model(data.modelName);
     }
     if (!data || !data.modelName) {
-        throw new Error('Provided object has not been decorated with @Schema!');
+        throw new Error("Provided object has not been decorated with @Schema!");
     }
 
-    // console.log(`Creating model: ${data.schemaName}`);
-    let Model: IMongooseModel<TModel, TDocument> = <any>conn.model(data.modelName, <any>data.schema);
+    // Run the finalize function (default is a noop)
+    let schema = data.schemaFinalize(data, data.schema);
+    let Model: mongoose.Model<mongoose.Document<TDocument>, TModel> = <any>conn.model(data.modelName, schema);
     return Model;
 }
+
 
 /**
  * Get the schema for a class which has been decorated with @Schema;
@@ -80,21 +100,18 @@ function getMetadata(cls:any, safe?: boolean) {
             configurable: false,
             enumerable: false,
             value: <IModelInfo>{
+                modelName: null as any,
+                schema: null as any,
                 children: [],
-                debug: false,
-                modelName: null,
-                postHooks: [],
-                preHooks: [],
-                schema: null,
                 schemaObj: {},
+                preHooks: [],
+                postHooks: [],
+                virtualFields: {},
+                schemaFinalize: defaultSchemaFinalize,
+                debug: false
             },
             writable: false,
         });
-        // obj._$_mongooseMeta = {
-        //     schemaName: null,
-        //     schema: new mongoose.Schema(),
-        //     children: []
-        // };
     }
     return obj._$_mongooseMeta;
 }
@@ -157,6 +174,10 @@ export interface ISchemaPlugin {
     options?: any;
 }
 
+export type ValidIndexDesignation = 1 | -1 | 'text' | '2d' | '2dsphere' | 'geoHaystack' | 'hashed';
+export type IndexDef = {[field: string]: ValidIndexDesignation};
+export type IndexTuple = [IndexDef] | [IndexDef, IndexOptions]
+
 /**
  * The options which can be passed into the @Schema class decorator
  */
@@ -172,9 +193,9 @@ export interface ISchemaOptions {
     name?: string;
 
     /**
-     * This should be an array of arrays where each array defines an index. The
+     * This should be an array of IndexTuples where each Tuple defines an index. The
      * format is the same as the format returned by getIndexes on a mongodb model.
-     * Each entry in the indexes array should be an array with one or two objects;
+     * Each Tuple in the indexes array should be a Tuple with one or two objects;
      * the first is the object indicating which fields are in the index, the second
      * are the options for the index
      *     [
@@ -183,7 +204,7 @@ export interface ISchemaOptions {
      *         [{field: 1, field: 2, field: 3}]
      *     ]
      */
-    indexes?: any[][];
+    indexes?: IndexTuple[];
 
     /**
      * Any plugins which you want to run on the model should be added in this
@@ -200,7 +221,26 @@ export interface ISchemaOptions {
      * Any options that you want to be passed into the new Schema(name, opts: Options) call
      * @type {Schema Options}
      */
-    schema_options?: any;
+    schema_options?: mongoose.SchemaOptions;
+
+    /**
+     * Optional function; if provided, this function will be called with the
+     * model info in order to create the Schema object before any other operation
+     *
+     * e.g.
+     *
+     *     schemaCreate: data => new mongoose.Schema()
+     */
+    schemaCreate?: typeof defaultSchemaCreate;
+
+    /**
+     * Optional function; if provided, this function will be called with the
+     * model info and the generated schema object after all other operations but
+     * before creating the actual model. This is useful for performing any last
+     * minute modifications to the schema which aren't otherwise supported by
+     * the MongooseDecorators library
+     */
+    schemaFinalize?: typeof defaultSchemaFinalize;
 
     debug?: boolean;
 }
@@ -232,7 +272,8 @@ export function schemaDef(v?: any) : any {
         if (data.debug) {
             console.log(`Creating schema: ${data.modelName}`);
         }
-        data.schema = new mongoose.Schema(data.schemaObj, opts.schema_options);
+        const schemaCreate = opts.schemaCreate || defaultSchemaCreate;
+        data.schema = schemaCreate(data, opts.schema_options);
         if (opts.indexes) {
             opts.indexes.forEach(i => data.schema && data.schema.index.apply(data.schema, i));
         }
@@ -243,6 +284,8 @@ export function schemaDef(v?: any) : any {
         data.postHooks.forEach(hook => data.schema && data.schema.post(hook.name, hook.fn));
 
         MixinPlugin(data.schema, target, data.debug);
+
+        data.schemaFinalize = opts.schemaFinalize || defaultSchemaFinalize;
 
         return target;
     }
@@ -389,6 +432,23 @@ export function defaultVal(defaultValue: any, opts?: any) {
     opts = opts || {};
     Object.assign(opts, { default: defaultValue });
     return makeFieldDecorator(opts);
+}
+
+/**
+ * Unlike @field decorators this one defines a field which will not be available *except*
+ * when the field specified is populated; the type of the decorated field should be
+ * readonly and optional. It can be either an array or a single value; if a single value,
+ * justOne should be true.
+ * @param options Information about the populate including the model name, field mappings, etc
+ */
+export function populateVirtual(options: {
+    ref: VirtualRef, localField: VirtualRef, foreignField: VirtualRef, justOne?: boolean, count?: boolean, options?: mongoose.ModelPopulateOptions
+}) : PropertyDecorator {
+    function PopulateDecorator(target: any, propertyKey: string) : void {
+        let data = getMetadata(target.constructor);
+        data.virtualFields[propertyKey] = options;
+    }
+    return PopulateDecorator;
 }
 
 /**

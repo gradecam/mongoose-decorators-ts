@@ -1,8 +1,8 @@
 import 'reflect-metadata';
 import {Schema} from 'mongoose';
 
-let excludeStatics = ['length', 'name', 'prototype'];
-let excludeMethods = ['constructor'];
+const excludeStatics = new Set(<const>['length', 'name', 'prototype']);
+const excludeMethods = new Set(<const>['constructor']);
 
 /**
  * Used to annotate properties that should be ignored.
@@ -49,11 +49,11 @@ export function MixinPlugin(schema:Schema, options:any, debug: boolean = false) 
     let propertyNames = properties.map((info) => info.name);
 
     statics = statics.filter(n =>
-        !shouldIgnore(options, n) && excludeStatics.indexOf(n) === -1 && typeof options[n] === 'function'
+        !shouldIgnore(options, n) && !excludeStatics.has(n as any) && typeof options[n] === 'function'
     );
     methods = methods.filter(n =>
         !shouldIgnore(options.prototype, n) &&
-        excludeMethods.indexOf(n) === -1 &&
+        !excludeMethods.has(n as any) &&
         propertyNames.indexOf(n) === -1 &&
         typeof options.prototype[n] === 'function'
     );
@@ -66,4 +66,4 @@ export function MixinPlugin(schema:Schema, options:any, debug: boolean = false) 
         if (prop.setter) { virtual.set(prop.setter); }
     });
     log(`After applying mixin plugin we have the following: ${Object.keys(schema.statics)} ${Object.keys(schema.methods)}`, debug);
-};
+}
