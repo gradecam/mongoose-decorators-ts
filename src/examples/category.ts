@@ -2,9 +2,11 @@ import * as mongoose from 'mongoose';
 import {
     field,
     IMongooseDocument, ModelFromSchemaDef,
-    ref, required,
-    schemaDef
+    required,
+    schemaDef,
+    populateVirtual
 } from '../index';
+import { Todo } from './todo';
 
 @schemaDef({
     schema_options: {id: false},
@@ -16,12 +18,12 @@ export class CategorySchema {
     @field()
     description: string;
 
-    @ref('Category', {type: String})
-    parent: string;
+    @populateVirtual({ref: 'Todo', localField: '_id', foreignField: 'category', justOne: false})
+    todoItems: mongoose.Types.DocumentArray<Todo>[];
 }
 
-export const Todo = getModel();
-export type Todo = IMongooseDocument<CategorySchema>;
+export const Category = getModel();
+export type Category = IMongooseDocument<CategorySchema>;
 
 export function getModel(conn: mongoose.Connection = mongoose.connection) {
     return ModelFromSchemaDef<typeof CategorySchema, CategorySchema>(CategorySchema, conn);
