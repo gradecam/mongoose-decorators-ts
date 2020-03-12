@@ -11,18 +11,24 @@ export type IdOrDocLike = IdLike | DocLike;
 
 export type VirtualRefFn = (doc: object) => string;
 export type VirtualRef = string | VirtualRefFn;
+export interface RefOptions {
+    ref: VirtualRef;
+    localField: VirtualRef;
+    foreignField: VirtualRef;
+    justOne?: boolean;
+    count?: boolean;
+    options?: mongoose.ModelPopulateOptions;
+};
 
 /**
  * Contains a mapping of field names to virtual populate definitions for that field
  */
 interface VirtualDefinitions {
-    [field: string]: {
-        ref: VirtualRef, localField: VirtualRef, foreignField: VirtualRef, justOne?: boolean, count?: boolean, options?: mongoose.ModelPopulateOptions
-    };
+    [field: string]: RefOptions;
 }
 
-function defaultSchemaCreate(data: IModelInfo, schema_opts: any) {
-    return new mongoose.Schema(data.schemaObj, schema_opts);
+function defaultSchemaCreate(data: IModelInfo, schemaOpts: any) {
+    return new mongoose.Schema(data.schemaObj, schemaOpts);
 }
 function defaultSchemaFinalize(data: IModelInfo, schema: mongoose.Schema) {
     return schema;
@@ -64,7 +70,7 @@ export function ModelFromSchemaDef<TModel extends ConstructorType, TDocument ext
         return <mongoose.Model<mongoose.Document<TDocument>, TModel>>conn.model(data.modelName);
     }
     if (!data || !data.modelName) {
-        throw new Error("Provided object has not been decorated with @Schema!");
+        throw new Error('Provided object has not been decorated with @Schema!');
     }
 
     // Run the finalize function (default is a noop)
@@ -103,17 +109,19 @@ function getMetadata(cls:any, safe?: boolean) {
         Object.defineProperty(obj, '_$_mongooseMeta', {
             configurable: false,
             enumerable: false,
+            // tslint:disable:object-literal-sort-keys
             value: <IModelInfo>{
                 modelName: null as any,
                 schema: null as any,
                 children: [],
-                schemaObj: {},
+                debug: false,
                 preHooks: [],
                 postHooks: [],
+                schemaObj: {},
                 virtualFields: {},
                 schemaFinalize: defaultSchemaFinalize,
-                debug: false
             },
+            // tslint:enable:object-literal-sort-keys
             writable: false,
         });
     }
@@ -228,6 +236,10 @@ export interface ISchemaOptions {
      * Any options that you want to be passed into the new Schema(name, opts: Options) call
      * @type {Schema Options}
      */
+    schemaOpts?: mongoose.SchemaOptions;
+    /**
+     * @deprecated since version 1.1.1
+     */
     schema_options?: mongoose.SchemaOptions;
 
     /**
@@ -280,7 +292,7 @@ export function schemaDef(v?: any) : any {
             console.log(`Creating schema: ${data.modelName}`);
         }
         const schemaCreate = opts.schemaCreate || defaultSchemaCreate;
-        data.schema = schemaCreate(data, opts.schema_options);
+        data.schema = schemaCreate(data, opts.schemaOpts || opts.schema_options);
         if (opts.indexes) {
             opts.indexes.forEach(i => data.schema && data.schema.index.apply(data.schema, i));
         }
@@ -448,9 +460,7 @@ export function defaultVal(defaultValue: any, opts?: any) {
  * justOne should be true.
  * @param options Information about the populate including the model name, field mappings, etc
  */
-export function populateVirtual(options: {
-    ref: VirtualRef, localField: VirtualRef, foreignField: VirtualRef, justOne?: boolean, count?: boolean, options?: mongoose.ModelPopulateOptions
-}) : PropertyDecorator {
+export function populateVirtual(options: RefOptions): PropertyDecorator {
     function PopulateDecorator(target: any, propertyKey: string) : void {
         let data = getMetadata(target.constructor);
         data.virtualFields[propertyKey] = options;
