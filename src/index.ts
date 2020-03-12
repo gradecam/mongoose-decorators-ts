@@ -177,10 +177,13 @@ export interface ISchemaPlugin {
     plugin: PluginFunction;
     options?: any;
 }
+interface MongooseIndexOptions extends IndexOptions {
+    expires?: string;
+}
 
 export type ValidIndexDesignation = 1 | -1 | 'text' | '2d' | '2dsphere' | 'geoHaystack' | 'hashed';
 export type IndexDef = {[field: string]: ValidIndexDesignation};
-export type IndexTuple = [IndexDef] | [IndexDef, IndexOptions]
+export type IndexTuple = [IndexDef] | [IndexDef, MongooseIndexOptions];
 
 /**
  * The options which can be passed into the @Schema class decorator
