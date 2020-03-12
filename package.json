@@ -5,8 +5,9 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
+    "build": "tsc -p .",
     "lint": "tslint --project tsconfig.json --type-check",
-    "prepublish": "tsc -p .",
+    "prepublishOnly": "tsc -p .",
     "test": "tsc -p . && mocha dist/test/"
   },
   "keywords": [
