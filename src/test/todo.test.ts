@@ -1,23 +1,27 @@
 import * as mongoose from 'mongoose';
 import { MAX_PRIORITY, Todo } from '../examples/todo';
 import { expect } from 'chai';
-
+import { MongoMemoryServer } from 'mongodb-memory-server';
+const mongod = new MongoMemoryServer();
 (<any>mongoose).Promise = global.Promise;
-const mockgoose = require('mockgoose'); // tslint:disable-line
 
 describe('test Todo model', function userSuite() {
-    before((done: Function) => {
-        mockgoose(mongoose).then(() =>
-            mongoose.connect('mongodb://dburi/database', (err: any) => done(err))
-        );
+    before(async () => {
+        const uri = await mongod.getUri();
+        await mongoose.connect(uri, {
+            useCreateIndex: true,
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+        });
     });
 
-    it('should have a mocked mongoose', () =>
-        expect((<any>mongoose).isMocked).to.be.true
-    );
+    after(async () => {
+        return mongoose.disconnect()
+            .then(() => mongod.stop())
+    });
 
     it('should start with an empty todo list', async () => {
-        let count: number = await Todo.find().count().exec();
+        let count: number = await Todo.find().countDocuments().exec();
         expect(count).to.equal(0);
     });
 
