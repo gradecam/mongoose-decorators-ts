@@ -4,7 +4,7 @@ import {IndexOptions} from 'mongodb';
 import {MixinPlugin} from './mixin-plugin';
 
 export type IMongooseDocument<T> = T & mongoose.Document;
-export type IMongooseModel<TModel, TDoc> = TModel & mongoose.Model<IMongooseDocument<TDoc>>;
+export type IMongooseModel<TModel, TDoc> = mongoose.Model<IMongooseDocument<TDoc>, TModel>;
 export type IdLike = string | number | Buffer | mongoose.Types.ObjectId;
 export type DocLike = {_id: IdLike};
 export type IdOrDocLike = IdLike | DocLike;
@@ -48,12 +48,16 @@ export interface IMongooseClassMetadataHolder {
     _$_mongooseMeta: IModelInfo;
 }
 
+/** Any constructable type; used by ModelFromSchemaDef to get the InstanceType */
+type ConstructorType = {new(...args: any[]): any};
+
 /**
  * Creates the actual Mongoose Model which is used to perform queries and create
  * instances of a mongoose Model.
  * @type {[type]}
  */
-export function ModelFromSchemaDef<TModel extends {}, TDocument extends {}>(cls:TModel, conn?:mongoose.Connection ) {
+export function ModelFromSchemaDef<TModel extends ConstructorType, TDocument extends object = InstanceType<TModel>>
+                                            (cls:TModel, conn?:mongoose.Connection ) {
     conn = conn || mongoose.connection;
     let data = getMetadata(cls, true);
     if (conn.models[data.modelName]) {
