@@ -31,7 +31,7 @@ interface VirtualDefinitions {
 }
 
 function defaultSchemaCreate(data: IModelInfo, schemaOpts: any) {
-    return new mongoose.Schema(data.schemaObj, schemaOpts);
+    return new mongoose.Schema({}, schemaOpts);
 }
 function defaultSchemaFinalize(data: IModelInfo, schema: mongoose.Schema) {
     return schema;
@@ -55,6 +55,12 @@ export interface IModelInfo {
 
 export interface IMongooseClassMetadataHolder {
     _$_mongooseMeta: IModelInfo;
+}
+
+export function getSchemaInfo<TModel>(cls:TModel) {
+    let data = getMetadata(cls, true);
+
+    return data;
 }
 
 /**
@@ -293,16 +299,15 @@ export function schemaDef(v?: any) : any {
         }
         const schemaCreate = opts.schemaCreate || defaultSchemaCreate;
         data.schema = schemaCreate(data, opts.schemaOpts || opts.schema_options);
+        
+        applyMixinSchema(target, data, data.schema);
+
         if (opts.indexes) {
             opts.indexes.forEach(i => data.schema && data.schema.index.apply(data.schema, i));
         }
         if (opts.plugins) {
             opts.plugins.forEach(p => data.schema && data.schema.plugin(p.plugin, p.options));
         }
-        data.preHooks.forEach (hook => data.schema && data.schema.pre (hook.name, hook.fn));
-        data.postHooks.forEach(hook => data.schema && data.schema.post(hook.name, hook.fn));
-
-        MixinPlugin(data.schema, target, data.debug);
 
         data.schemaFinalize = opts.schemaFinalize || defaultSchemaFinalize;
 
@@ -310,6 +315,20 @@ export function schemaDef(v?: any) : any {
     }
     return ModelClassDecorator;
 }
+
+export function applyMixinSchema(obj: any, data: IModelInfo, schema: mongoose.Schema) {
+    // Add the fields
+    schema.add(data.schemaObj);
+
+    (data.preHooks ||[]).forEach(hook => data.schema.pre (hook.name, hook.fn));
+    (data.postHooks||[]).forEach(hook => data.schema.post(hook.name, hook.fn));
+    for (let f of Object.keys(data.virtualFields)) {
+        schema.virtual(f, data.virtualFields[f]);
+    }
+
+    MixinPlugin(schema, obj, data.debug);
+}
+
 
 /**
  * Utility method used during model definitions
