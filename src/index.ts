@@ -69,19 +69,20 @@ export function getSchemaInfo<TModel>(cls:TModel) {
  * @type {[type]}
  */
 export function ModelFromSchemaDef<TModel extends ConstructorType, TDocument extends object = InstanceType<TModel>>
-                                            (cls:TModel, conn?:mongoose.Connection ) {
+                                            (cls:TModel, conn?:mongoose.Connection, modelName?: string ) {
     conn = conn || mongoose.connection;
     let data = getMetadata(cls, true);
-    if (conn.models[data.modelName]) {
-        return <mongoose.Model<mongoose.Document<TDocument>, TModel>>conn.model(data.modelName);
+    const mName = modelName || data.modelName;
+    if (conn.models[mName]) {
+        return <mongoose.Model<mongoose.Document<TDocument>, TModel>>conn.model(mName);
     }
-    if (!data || !data.modelName) {
+    if (!data || !mName) {
         throw new Error('Provided object has not been decorated with @Schema!');
     }
 
     // Run the finalize function (default is a noop)
     let schema = data.schemaFinalize(data, data.schema);
-    let Model: mongoose.Model<mongoose.Document<TDocument>, TModel> = <any>conn.model(data.modelName, schema);
+    let Model: mongoose.Model<mongoose.Document<TDocument>, TModel> = <any>conn.model(mName, schema);
     return Model;
 }
 
