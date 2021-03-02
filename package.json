@@ -18,7 +18,7 @@
   "author": "GradeCam LLC",
   "license": "MIT",
   "devDependencies": {
-    "@alttypes/mongoose": "~0.9.6",
+    "@alttypes/mongoose": "~1.0.1",
     "@types/chai": "^3.4.34",
     "@types/chai-as-promised": "0.0.29",
     "@types/events": "^3.0.0",
@@ -35,7 +35,7 @@
     "typescript": "^3.8.3"
   },
   "peerDependencies": {
-    "@alttypes/mongoose": "~0.9.6",
+    "@alttypes/mongoose": ">= 0.9.6",
     "@types/node": ">= 10.0.0",
     "mongoose": ">= 4.7.7",
     "reflect-metadata": ">= 0.1.9"
