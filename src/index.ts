@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import * as mongoose from 'mongoose';
-import {IndexOptions} from 'mongodb';
+import {CreateIndexesOptions} from 'mongodb';
 import {MixinPlugin} from './mixin-plugin';
 
 /** Any constructable type; used by ModelFromSchemaDef to get the InstanceType */
@@ -192,7 +192,7 @@ export interface ISchemaPlugin {
     plugin: PluginFunction;
     options?: any;
 }
-interface MongooseIndexOptions extends IndexOptions {
+interface MongooseIndexOptions extends CreateIndexesOptions {
     expires?: string;
 }
 

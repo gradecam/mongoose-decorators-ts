@@ -18,21 +18,21 @@
   "author": "GradeCam LLC",
   "license": "MIT",
   "devDependencies": {
-    "@alttypes/mongoose": "~1.0.1",
+    "@alttypes/mongoose": "~1.1.1",
     "@types/chai": "^3.4.34",
     "@types/chai-as-promised": "0.0.29",
     "@types/events": "^3.0.0",
     "@types/mocha": "^2.2.37",
-    "@types/mongodb": ">= 3.1.0",
     "@types/node": ">= 10.0.0",
     "chai": "^3.5.0",
     "chai-as-promised": "^6.0.0",
     "mocha": "^7.1.0",
-    "mongoose": ">= 4.7.7",
+    "mongodb": "~ 4.1.0",
     "mongodb-memory-server": "^7.3.6",
+    "mongoose": ">= 5.12.15",
     "reflect-metadata": ">= 0.1.9",
     "tslint": "^4.3.1",
-    "typescript": "^3.8.3"
+    "typescript": "^4.3.5"
   },
   "peerDependencies": {
     "@alttypes/mongoose": ">= 0.9.6",
