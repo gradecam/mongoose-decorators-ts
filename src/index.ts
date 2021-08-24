@@ -419,8 +419,20 @@ function makeFieldDecorator(defaultOpts: any) {
         }
         opts = Object.assign({}, defaultOpts, opts);
         function SchemaFieldDecorator(target: any, propertyKey: string) : void {
+            if (opts.populateField) {
+                const data = getMetadata(target.constructor);
+                data.virtualFields[opts.populateField] = <RefOptions>{
+                    foreignField: '_id',
+                    localField: propertyKey,
+                    ref: opts.ref,
+                    justOne: true,
+                };
+                delete opts.populateField;
+            }
+    
             setFieldOpts(target, propertyKey, opts);
         }
+
         return SchemaFieldDecorator;
     }
 
@@ -496,6 +508,7 @@ export function populateVirtual(options: RefOptions): PropertyDecorator {
 export function ref(ref: string, opts?: any) {
     const defaults = {type: mongoose.Schema.Types.ObjectId};
     opts = Object.assign({}, defaults, opts, {ref: ref});
+
     return makeFieldDecorator(opts);
 }
 

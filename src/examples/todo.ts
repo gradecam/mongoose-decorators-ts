@@ -22,11 +22,14 @@ export class TodoSchema {
     @required()
     title: string;
 
-    @ref('Category', {default: 'inbox', type: String})
+    // Using the "terse" way for defining a virtual populate field
+    @ref('Category', {default: 'inbox', type: String, populateField: 'categoryDoc'})
     category: string;
-
+    categoryDoc: Category;
+    
+    // Using the "verbose" (and more powerful) way for defining a virtual populate field
     @populateVirtual({ref: 'Category', localField: 'category', foreignField: '_id', justOne: true})
-    categoryDoc?: Category;
+    categoryDoc2?: Category;
 
     @required({default: 1, min: 1, max: MAX_PRIORITY})
     priority: number;
