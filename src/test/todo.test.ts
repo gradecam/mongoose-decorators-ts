@@ -2,11 +2,13 @@ import * as mongoose from 'mongoose';
 import { MAX_PRIORITY, Todo } from '../examples/todo';
 import { expect } from 'chai';
 import { MongoMemoryServer } from 'mongodb-memory-server';
-const mongod = new MongoMemoryServer();
+const mongoDfd = MongoMemoryServer.create();
 (<any>mongoose).Promise = global.Promise;
 
 describe('test Todo model', function userSuite() {
     before(async () => {
+        this.timeout(15000);
+        const mongod = await mongoDfd;
         const uri = await mongod.getUri();
         await mongoose.connect(uri, {
             useCreateIndex: true,
@@ -16,6 +18,7 @@ describe('test Todo model', function userSuite() {
     });
 
     after(async () => {
+        const mongod = await mongoDfd;
         return mongoose.disconnect()
             .then(() => mongod.stop())
     });
