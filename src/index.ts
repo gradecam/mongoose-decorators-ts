@@ -1,36 +1,32 @@
 import 'reflect-metadata';
 import * as mongoose from 'mongoose';
-import {CreateIndexesOptions} from 'mongodb';
 import {MixinPlugin} from './mixin-plugin';
 
 /** Any constructable type; used by ModelFromSchemaDef to get the InstanceType */
 type ConstructorType = {new(...args: any[]): any};
 
-export type IMongooseDocument<T extends object> = mongoose.Document<T>;
-export type IMongooseModel<TModel extends object, TDoc extends object> = mongoose.Model<IMongooseDocument<TDoc>, TModel>;
 export type IdLike = string | number | Buffer | mongoose.Types.ObjectId;
 export type DocLike = {_id: IdLike};
 export type IdOrDocLike = IdLike | DocLike;
 
 export type VirtualRefFn = (doc: object) => string;
 export type VirtualRef = string | VirtualRefFn;
-export interface RefOptions {
-    ref: VirtualRef;
-    localField: VirtualRef;
-    foreignField: VirtualRef;
-    justOne?: boolean;
-    count?: boolean;
-    options?: mongoose.ModelPopulateOptions;
+
+type MethodsOfHelp<T extends {}> = {
+    // 0 extends (1 & T[K]) will only be true if T[K] is any
+    [K in keyof T]: (0 extends (1 & T[K]) ? never : T[K] extends Function ? K : never);
 };
+type MethodsOf<T extends {}> = MethodsOfHelp<T>[keyof T];
+type PropertiesOf<T extends {}> = Exclude<keyof T, MethodsOf<T>>;
 
 /**
  * Contains a mapping of field names to virtual populate definitions for that field
  */
 interface VirtualDefinitions {
-    [field: string]: RefOptions;
+    [field: string]: mongoose.VirtualTypeOptions<any>;
 }
 
-function defaultSchemaCreate(data: IModelInfo, schemaOpts: any) {
+function defaultSchemaCreate(data: IModelInfo, schemaOpts: mongoose.SchemaOptions) {
     return new mongoose.Schema({}, schemaOpts);
 }
 function defaultSchemaFinalize(data: IModelInfo, schema: mongoose.Schema) {
@@ -49,8 +45,8 @@ export interface IModelInfo {
     children: IMongooseClassMetadataHolder[];
     virtualFields: VirtualDefinitions;
     schemaFinalize: typeof defaultSchemaFinalize;
-    preHooks: { name: string, fn: mongoose.HookSyncCallback<any> }[];
-    postHooks: { name: string, fn: ( error: any, doc: any, next: (err?: any) => void) => void}[];
+    preHooks: { name: string, fn: mongoose.PreMiddlewareFunction<any> }[];
+    postHooks: { name: string, fn: mongoose.PostMiddlewareFunction<any> }[];
 }
 
 export interface IMongooseClassMetadataHolder {
@@ -63,6 +59,16 @@ export function getSchemaInfo<TModel>(cls:TModel) {
     return data;
 }
 
+// interface TestInterface {
+//     a: string;
+//     b: number;
+//     c: any;
+//     callMe(a: string): number;
+// }
+// type foo = never extends Function ? 5 : false;//notAny<any>;
+// type a = MethodsOf<TestInterface>;
+// type b = PropertiesOf<TestInterface>;
+
 /**
  * Creates the actual Mongoose Model which is used to perform queries and create
  * instances of a mongoose Model.
@@ -70,11 +76,12 @@ export function getSchemaInfo<TModel>(cls:TModel) {
  */
 export function ModelFromSchemaDef<TModel extends ConstructorType, TDocument extends object = InstanceType<TModel>>
                                             (cls:TModel, conn?:mongoose.Connection, modelName?: string ) {
+    type ModelType = TModel & mongoose.Model<TDocument, {}, {}, {}>;
     conn = conn || mongoose.connection;
     let data = getMetadata(cls, true);
     const mName = modelName || data.modelName;
     if (conn.models[mName]) {
-        return <mongoose.Model<mongoose.Document<TDocument>, TModel>>conn.model(mName);
+        return <TModel & mongoose.Model<TDocument, {}, {}, {}>>conn.model(mName);
     }
     if (!data || !mName) {
         throw new Error('Provided object has not been decorated with @Schema!');
@@ -82,10 +89,10 @@ export function ModelFromSchemaDef<TModel extends ConstructorType, TDocument ext
 
     // Run the finalize function (default is a noop)
     let schema = data.schemaFinalize(data, data.schema);
-    let Model: mongoose.Model<mongoose.Document<TDocument>, TModel> = <any>conn.model(mName, schema);
+    let Model: TModel & mongoose.Model<TDocument, {}, {}, {}> = <any>conn.model(mName, schema);
+
     return Model;
 }
-
 
 /**
  * Get the schema for a class which has been decorated with @Schema;
@@ -192,13 +199,10 @@ export interface ISchemaPlugin {
     plugin: PluginFunction;
     options?: any;
 }
-interface MongooseIndexOptions extends CreateIndexesOptions {
-    expires?: string;
-}
 
 export type ValidIndexDesignation = 1 | -1 | 'text' | '2d' | '2dsphere' | 'geoHaystack' | 'hashed';
 export type IndexDef = {[field: string]: ValidIndexDesignation};
-export type IndexTuple = [IndexDef] | [IndexDef, MongooseIndexOptions];
+export type IndexTuple = [IndexDef] | [IndexDef, mongoose.IndexOptions];
 
 /**
  * The options which can be passed into the @Schema class decorator
@@ -299,7 +303,7 @@ export function schemaDef(v?: any) : any {
             console.log(`Creating schema: ${data.modelName}`);
         }
         const schemaCreate = opts.schemaCreate || defaultSchemaCreate;
-        data.schema = schemaCreate(data, opts.schemaOpts || opts.schema_options);
+        data.schema = schemaCreate(data, (opts.schemaOpts || opts.schema_options) ?? {});
         
         applyMixinSchema(target, data, data.schema);
 
@@ -421,7 +425,7 @@ function makeFieldDecorator(defaultOpts: any) {
         function SchemaFieldDecorator(target: any, propertyKey: string) : void {
             if (opts.populateField) {
                 const data = getMetadata(target.constructor);
-                data.virtualFields[opts.populateField] = <RefOptions>{
+                data.virtualFields[opts.populateField] = <mongoose.VirtualTypeOptions>{
                     foreignField: '_id',
                     localField: propertyKey,
                     ref: opts.ref,
@@ -492,7 +496,7 @@ export function defaultVal(defaultValue: any, opts?: any) {
  * justOne should be true.
  * @param options Information about the populate including the model name, field mappings, etc
  */
-export function populateVirtual(options: RefOptions): PropertyDecorator {
+export function populateVirtual(options: mongoose.VirtualTypeOptions): PropertyDecorator {
     function PopulateDecorator(target: any, propertyKey: string) : void {
         let data = getMetadata(target.constructor);
         data.virtualFields[propertyKey] = options;

@@ -1,7 +1,7 @@
 import * as mongoose from 'mongoose';
 import {
     arrayField, dateField, field,
-    IMongooseDocument, ModelFromSchemaDef,
+    ModelFromSchemaDef,
     ref, required,
     schemaDef,
     populateVirtual
@@ -19,13 +19,15 @@ export const MAX_PRIORITY = 10;
     schema_options: {id: false},
 })
 export class TodoSchema {
+    _id: mongoose.Types.ObjectId;
+
     @required()
     title: string;
 
     // Using the "terse" way for defining a virtual populate field
     @ref('Category', {default: 'inbox', type: String, populateField: 'categoryDoc'})
     category: string;
-    categoryDoc: Category;
+    categoryDoc: any;
     
     // Using the "verbose" (and more powerful) way for defining a virtual populate field
     @populateVirtual({ref: 'Category', localField: 'category', foreignField: '_id', justOne: true})
@@ -43,7 +45,7 @@ export class TodoSchema {
     @dateField()
     dueAt: Date;
 
-    static findByCategory(this: typeof Todo, category: string, priority: number = 0, filterOpts?: any) {
+    static findByCategory(this: typeof TodoModel, category: string, priority: number = 0, filterOpts?: any) {
         let filter: any = Object.assign({}, filterOpts, {category: category}, priority ? {priority: priority} : {});
         return this.find(filter);
     }
@@ -53,8 +55,8 @@ export class TodoSchema {
     }
 }
 
-export const Todo = getModel();
-export type Todo = IMongooseDocument<TodoSchema>;
+export const TodoModel = getModel();
+export type TodoDocument = InstanceType<typeof TodoModel>;
 
 export function getModel(conn: mongoose.Connection = mongoose.connection) {
     return ModelFromSchemaDef<typeof TodoSchema, TodoSchema>(TodoSchema, conn);

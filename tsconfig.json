@@ -13,13 +13,6 @@
         "sourceMap": true,
         "strictNullChecks": true,
         "target": "ES2015",
-        "typeRoots": [
-            "node_modules/@alttypes",
-            "node_modules/@types"
-        ],
-        "paths": {
-            "mongoose": ["node_modules/@alttypes/mongoose"],
-        },
     },
     "include": [
         "src/**/*.ts"
